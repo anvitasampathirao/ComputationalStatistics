@@ -1,0 +1,59 @@
+---
+title: "Homework_1"
+author: "Anvita S"
+date: "5/14/2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+#Q1)
+```{r}
+v1<-c(2,3,4,5,6)
+v2<-c(5,6,7,8,9)
+v2-v1
+v3<-v1*v2
+v3
+v1 %*% v2
+v<-v1+v2
+v[which(v>10)]<-0
+v
+```
+#Q2)
+```{r}
+m1<-matrix(1:25,5,5)
+m1
+m1%*%v1
+v1%*%m1
+m1[,3]<-rep(1,5)
+m1
+m1[(m1[,5]>10),5]<-rep(0,5)
+m1
+```
+#Q3)
+```{r}
+Date<-c("2019-05-14","2019-05-15","2019-05-16","2019-05-17","2019-05-18")
+df<-data.frame(Date,c("M","F","F","M","F"),c(1,5,7,4,2))
+colnames(df)<-c("DOJ","Gender","Count")
+df
+df$DOJ<-as.Date(df$DOJ)
+df$Gender<-as.character(df$Gender)
+str(df)
+write.table(df,file="EMPLOYEEdata.csv",row.names=FALSE,sep=",")
+newdf<-read.table(file="EMPLOYEEdata.csv",header=TRUE,sep=",",stringsAsFactors=FALSE)
+newdf
+df1<-df[c(1,3,5),c("DOJ","Gender")]
+df1
+df[df[,"Count"]%%2==0,"Count"]<-0
+df
+list1<-list(v1,v2,m1,df)
+list1
+names(list1)<-c("Vector1","Vector2","Matrix","Dataframe")
+list1
+str(list1)
+list1[[2]][2]
+```
+#Q4)
+\[
+x=\frac{-b\pm\sqrt{b^{2}-4ac}}{2a}
+\]

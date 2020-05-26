@@ -1,0 +1,140 @@
+---
+title: "HW07_Sampathirao_A"
+author: "Anvita Sampathirao"
+date: "7/7/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+#1.
+```{r}
+data("mtcars")
+head(mtcars)
+df<- data.frame(mtcars$mpg,mtcars$hp, 
+                row.names = row.names(mtcars))
+colnames(df)<- c("mpg","hp")
+head(df)
+library(ggplot2)
+ggplot(df, aes(x= mpg, y= hp)) + geom_point() + ggtitle("Scatterplot of mpg and hp")
+```
+From the plot, it looks like hp and mpg are negatively related. There is no reason to believe that relation is non linear. A relation can be said as non linear if the points are scattered all over and do not coincide which doesn't seem like in our case.
+
+#2.
+```{r}
+a<- cov(df$mpg,df$hp)
+a
+```
+a) There is a statistical association between mpg and hp because the variation of mpg coincides with the variation in hp on an average. 
+b) The sign of the relation is negative, indicating that there is a negative association between mpg and hp
+c) The magnitude is relatively high, thus it is a strong association. However, covariance is not an apt measure to determine the strength of the relationship
+
+#3.
+```{r}
+b<- cor(df$mpg,df$hp)
+b
+```
+a) There is a statistical relation between mpg and hp because the variation of mpg coincides with the variation in hp on an average
+b) The sign of the relation is negative, indicating that there is a negative association between mpg and hp
+c) The strength is considerably strong as the magnitude of the correlation coefficient is closer to the bound of -1. 
+
+#4.
+No we cannot conclude that hp causes mpg. From 2., we can infer that there is a negative relation between hp and mpg. And From 3., we can observe that the correlation coefficient is closer to the -1 bound. Hence, there is a negative correlation between hp and mpg. However, we cannot deduce from this that hp causes mpg. "Correlation does not imply causation."
+
+#5.
+$$\beta_1=\frac{\sigma_\text{(x,y)}}{sd_x^2}$$
+$$\beta_0=\bar{y}-\beta_1*\bar{x}$$
+```{r}
+b1<- a/(sd(mtcars$mpg)^2)
+b1
+b0<- mean(mtcars$hp)- (b1*mean(mtcars$mpg))
+b0
+```
+Beta_0 is the y intercept of the fitted line in our linear model. It is the average value of hp when mpg is 0. 
+
+Beta_1 is the slope of the fitted line in our linear model. It means, hp will change Beta_1 times with an incremental change in mpg, i.e., hp drops by 8.83 units when there is a unit increase in mpg.
+
+#6.
+```{r}
+yhatfun<- function(x){
+  yhat<- b0 + (b1*x)
+  return(yhat)
+}
+hpfit<- yhatfun(df$mpg)
+df1<- data.frame(df$mpg, df$hp, hpfit, row.names = row.names(df))
+colnames(df1)<- c("mpg","hp","hphat")
+head(df1)
+ggplot(df1, aes(x= mpg, y= hphat)) + geom_point() +
+  ggtitle("Scatterplot of mpg and fitted hp")
+```
+
+#7.
+```{r}
+err<- df1$hp - df1$hphat
+df2<- data.frame(df1$mpg, df1$hp, df1$hphat, err,
+                 row.names = row.names(df1))
+colnames(df2)<- c("mpg","hp","hphat","errors")
+head(df2)
+ggplot(df2, aes(x= errors)) + geom_histogram() + ggtitle("Histogram of errors")
+```
+Yes, they look normally distributed but the distribution looks skewed to the right. 
+```{r}
+SSE<- sum((df2$hp-df2$hphat)^2)
+SSE #Sum of Standard Errors
+```
+
+#8.
+$$se_{\beta_1} = se_{\hat{y}} \frac{1}{\sqrt{\sum (x_i - \bar{x})^2}}$$
+where,
+$$se_{\hat{y}}= \sqrt{\frac{\sum (y_i - \hat{y})^2}{n-2}}$$
+
+$$H_0: \beta_1=0$$
+$$H_a: \beta_1 \neq 0$$
+```{r}
+n<-length(df2$hp)
+k<-1 #1 variable in linear model
+dof<- n-k-1 #Degree of freedom
+stderr_y <- sqrt(sum((df2$hp-df2$hphat)^2)/dof)
+stderr_b1 <- stderr_y* 1/(sqrt(sum((df2$mpg - mean(df2$mpg))^2)))
+stderr_b1 #Standard Error of Beta1
+t_val<- (b1-0)/stderr_b1
+t_val
+t_crit<-qt(c(0.975,0.025),dof) 
+t_crit
+CI<- b1+(t_crit*stderr_b1) 
+CI #95% Confidence Interval
+2*pt(t_val,dof)
+```
+We can see that t_value lies outside of our acceptance region of t distribution, therefore we reject the null hypothesis. 
+Also, we note that p value is less than 0.05, it confirms that we can reject the null hypothesis, i.e., Beta1 is not equal to 0 and this implies there exists a linear relationship between mpg and hp.
+
+#9.
+$$R^{2} = \frac{TSS - SSE}{TSS}$$
+```{r}
+TSS <- sum((df2$hp - mean(df2$hp))^2)
+Rsq <- (TSS -SSE)/TSS
+Rsq
+```
+R^2= 0.6024 implies that 60.24% of the variation in hp is defined by our linear model, i.e.,
+$$hp = -8.83*mpg+ 324.08$$
+
+#10.
+```{r}
+ggplot(df2, aes(x=mpg, y=hp)) + geom_point() + geom_smooth(method=lm) + ggtitle("Regression Line & 95% Confidence Interval for fitted hp")
+```
+
+#11.
+```{r}
+summary(lm(hp ~ mpg, data = df2))
+```
+Thus, we see that
+Beta0= 324.08
+Beta1= -8.83
+Standard Error of Beta 1= 1.31
+t-test for Beta 1 (t-value)= -6.742
+and p-value= 1.79e-07
+match our values in 5. and 8. 
+Hence, proved!

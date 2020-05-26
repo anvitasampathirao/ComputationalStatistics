@@ -1,0 +1,235 @@
+---
+title: "HW10_Sampathirao_A"
+author: "Anvita Sampathirao"
+date: "7/30/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1.1
+
+```{r, results='asis', warning=FALSE}
+library("readxl")
+colgdata<- read_excel("CollegeDistance.xls", col_names = TRUE)
+suppressMessages(attach(colgdata))
+suppressMessages(library(stargazer))
+Reg1 <- lm(ed ~ dist + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+stargazer(Reg1,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+Because dist is a linear regressor on ed, a unit change in dist (be it from 2 to 3 or 6 to 7) will result in a decrease in ed by a factor of 0.037. 
+
+i.e.
+
+$$\Delta{y}= \beta_1*\Delta{x_1}$$
+Now when delta_x = 1,
+delta_y = beta_1
+
+where beta_1 is the estimated coefficient of dist which is -0.037 in our case.
+
+#1.2
+
+```{r, results='asis', warning=FALSE}
+Reg2 <- lm(ed ~ dist + I(dist^2) + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+stargazer(Reg2,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+
+Because dist is a quadratic regressor on ed, a unit change in dist will result in change in ed by 
+-0.081 + (2 * 0.005 * dist)
+
+i.e.
+
+$$\Delta{y}= (\beta_1 + 2\beta_2x_1)*\Delta{x_1}$$
+
+Where, x1 is dist and 
+
+beta_1 is estimated coefficient of dist (linear regressor) = -0.081
+
+beta_2 is estimated coefficient of dist (quadratic regressor) = 0.005
+
+Now when dist is changing from 2 to 3,
+
+delta_x = 1
+
+x_1 = 2
+
+Therefore,
+
+$$\Delta{y}= (-0.081 + 2*0.005*2)*1 = -0.061$$
+
+Now when dist is changing from 6 to 7,
+
+delta_x = 1
+
+x_1 = 6
+
+Therefore,
+
+$$\Delta{y}= (-0.081 + 2*0.005*6)*1 = -0.021$$
+
+As compared to (1), in model (2), as dist increases, the rate of change of ed is decreasing with a change in dist. 
+
+If the relation between ed and dist is linear, our hypothesis will be:
+
+$$H_0: \beta_2 = 0$$
+
+which from the above regression results we observe that, 
+
+$$\beta_2 = 0.005^{**}$$
+
+It implies we can reject our null hypothesis at a 95% significance level and thus, the relation between ed and dist is non-linear.
+
+#1.3
+
+```{r, results='asis', warning=FALSE}
+Reg3 <- lm(ed ~ dist + I(dist^2) + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + I(momcoll*dadcoll) + cue80 + stwmfg80)
+stargazer(Reg3,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+
+We see that,
+
+$$\beta_{dadcoll}= 0.654^{***}$$
+That means, when father is educated, years of college education increase by 65.4% as compared to when father is not educated and is statistically significant at 99%
+
+Also,
+
+$$\beta_{momcoll}= 0.569^{***}$$
+That means, when mother is educated, years of college education increase by 56.9% as compared to when mother is not educated and is statistically significant at 99%
+
+Now, when we add an interaction term between dadcoll and momcoll, 
+$$\beta_{momcoll*dadcoll}= -0.366^{**}$$
+#Not statistically significant at 99%
+
+That means, when mother and father both are educated, years of college education increase by 
+$$\beta_{momcoll}+ \beta_{dadcoll} + \beta_{momcoll*dadcoll}= 0.654 + 0.569 - 0.366 = 0.857$$
+85.7% as compared to when mother and father both are not educated. 
+
+
+#1.4
+
+```{r, results='asis', warning=FALSE}
+Reg4 <- lm(ed ~ dist + I(dist^2) + female + bytest + tuition + black + hispanic + incomehi + I(dist*incomehi) + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+stargazer(Reg4,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+The interaction parameter is not statistically significant at 95%.
+
+#1.5
+
+```{r, results='asis', warning=FALSE}
+anova(Reg2, Reg3)
+stargazer(anova(Reg2, Reg3), summary = FALSE, type = "latex", header = FALSE, title = "Anova 1")
+```
+
+For model (2) nested specification of the complete model (3) we reject the null that, jointly, the parameters of the complete model that are not in the nested model are equal to zero.
+
+That is, the interaction term between momcoll and dadcoll should be included in the model.
+
+#1.6
+
+```{r, results='asis', warning=FALSE}
+anova(Reg2, Reg4)
+stargazer(anova(Reg2, Reg4), summary = FALSE, type = "latex", header = FALSE, title = "Anova 2")
+```
+
+For model (2) nested specification of the complete model (4) we fail to reject the null that, jointly, the parameters of the complete model that are not in the nested model are equal to zero.
+
+That is, the interaction term between dist and incomehi can be excluded from the model. 
+
+#1.7
+
+```{r, results='asis', warning=FALSE}
+Reg7_a <- lm(ed ~ dist + I(dist^2) + I(dist^3) + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+Reg7_b <- lm(ed ~ dist + I(dist^2) + I(dist^3) + I(dist^4) + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+Regs<- list (Reg1, Reg2, Reg7_a, Reg7_b)
+stargazer(Regs,
+          type= "latex",
+          df= FALSE,
+          intercept.bottom = FALSE)
+```
+
+We see from above that,
+beta_1,beta_2,beta_3,beta_4 are insignificant in models (3) & (4)
+
+where,
+beta_1= estimated coeff of dist
+
+beta_2= estimated coeff of dist^2
+
+beta_3= estimated coeff of dist^3
+
+beta_4= estimated coeff of dist^4
+
+Therefore, relationship between dist and ed cannot be greater than order 2 in our case. 
+
+#2.8
+
+```{r, results='asis', warning=FALSE}
+a<- .Machine$double.xmin
+Reg8 <- lm(ed ~ I(log(dist+a)) + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+stargazer(Reg8,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+
+#2.9
+```{r, results='asis', warning=FALSE}
+Reg9 <- lm(I(log(ed)) ~ dist + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+stargazer(Reg9,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+
+#2.10
+
+```{r, results='asis', warning=FALSE}
+Reg10 <- lm(I(log(ed)) ~ I(log(dist+a)) + female + bytest + tuition + black + hispanic + incomehi + ownhome + dadcoll + momcoll + cue80 + stwmfg80)
+stargazer(Reg10,
+          type= "latex",
+          intercept.bottom = FALSE)
+```
+
+#2.11
+
+```{r, results='asis', warning=FALSE}
+Regs_1<- list(Reg8, Reg9, Reg10)
+stargazer(Regs_1,
+          type= "latex",
+          df= FALSE,
+          intercept.bottom = FALSE)
+```
+Model (1): Linear-Log Model: Though the sign suggests a decreasing nature, a unit increase in dist will have a negligent reduction in the years of college education. Almost no change. 
+
+Model (2): Log-Linear Model: A unit increase in dist, will have a reduction by a factor of 0.3% in years of college eduction. Decreasing nature.
+
+Model (3): Log-Log Model: A unit increase in dist has no change in years of college education. Parameter is 0 and also statistically insignificant. 
+
+#2.12
+
+```{r}
+SSE1<- sum(ed- Reg1$fitted.values)^2
+SSE2<- sum(ed- Reg2$fitted.values)^2
+SSE3<- sum(ed- Reg3$fitted.values)^2
+SSE4<- sum(ed- Reg4$fitted.values)^2
+SSE8<- sum(ed- Reg8$fitted.values)^2
+SSE9<- sum(ed- (exp(Reg9$fitted.values)))^2
+SSE10<- sum(ed- (exp(Reg10$fitted.values)))^2
+
+SSEdisplay<- c(SSE1, SSE2, SSE3, SSE4, SSE8, SSE9, SSE10)
+SSEdisplay
+min(SSEdisplay)
+
+```
+Model (3) or Regression (3) has the least SSE, i.e., including the interaction term between momcoll and dadcoll minimizes the SSE. 
+
+
+

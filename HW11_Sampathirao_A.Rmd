@@ -1,0 +1,242 @@
+---
+title: "HW11_Sampathirao_A"
+author: "Anvita Sampathirao"
+date: "8/5/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressMessages(library(AER))
+data(HMDA)
+library(ggplot2)
+suppressMessages(library(stargazer))
+HMDA$deny <- ifelse(HMDA$deny == "yes", 1, 0)
+HMDA$afam <- ifelse(HMDA$afam == "yes", 1, 0)
+HMDA$phist <- ifelse(HMDA$phist == "yes", 1, 0)
+HMDA$selfemp <- ifelse(HMDA$selfemp == "yes", 1, 0)
+HMDA$insurance <- ifelse(HMDA$insurance == "yes", 1, 0)
+HMDA$condomin <- ifelse(HMDA$condomin == "yes", 1, 0)
+HMDA$single <- ifelse(HMDA$single == "yes", 1, 0)
+HMDA$hschool <- ifelse(HMDA$hschool == "yes", 1, 0)
+HMDA$chist <- as.numeric(HMDA$chist)
+HMDA$mhist <- as.numeric(HMDA$mhist)
+```
+
+#1
+
+```{r}
+plot1<- ggplot(data = HMDA, aes(x= pirat, y= deny)) + 
+  geom_point () + 
+  geom_smooth(method= "lm", formula = y~x, se= FALSE)
+plot1
+```
+
+#2
+
+```{r, results='asis', warning=FALSE}
+LinReg1<- lm(deny ~ pirat, data = HMDA)
+LinReg2<- lm(deny ~ pirat + afam, data = HMDA)
+LinRegs<- list (LinReg1, LinReg2)
+stargazer(LinRegs, type = "latex", intercept.bottom = FALSE, df = FALSE)
+```
+In Model (1),
+- the estimator for pirat variable is statistically different than 0 and hence, a unit change in payments to income ratio will result in a loan most likely being denied by 60.4%
+
+In Model (2),
+- the estimator for pirat variable is statistically different than 0 and a unit change in payments to income ratio will result in a in a loan most likely being denied by 55.9%
+
+- the estimator for afam is also statistically different than 0. A loan is likely to get denied by 17.7% if a person applying for it is an african american as compared to not being an african american
+
+Yes, afam is a relevant omitted variable in Model (1), as we note that the value of beta_pirat has changed from Model (1) to Model (2)
+
+#3
+
+```{r}
+PIavg<- mean(HMDA$pirat)
+betas<- LinReg2$coefficients
+P1.1<- as.numeric(betas[1] + (PIavg*betas[2]) + (1*betas[3])) #When an african american
+P1.0<- as.numeric(betas[1] + (PIavg*betas[2]) + (0*betas[3])) #When not an african american
+P1.1/P1.0
+```
+
+#4
+
+```{r}
+#Finding out the order in which variables are to be added by strength of correlation
+corData<- cor(HMDA)
+corData<- corData[, colnames(corData) %in% c("deny", "afam")]
+corData
+a<- corData[,1] * corData[,2]
+sort(a, decreasing = TRUE)
+```
+```{r, results='asis', warning=FALSE}
+#Running Logit Regressions
+LogitReg1 <- glm(deny ~ pirat + afam, 
+                 data = HMDA, family = "binomial")
+LogitReg2 <- glm(deny ~ pirat + afam + chist, 
+                 data = HMDA, family = "binomial")
+LogitReg3 <- glm(deny ~ pirat + afam + chist + phist, 
+                 data = HMDA, family = "binomial")
+LogitReg4 <- glm(deny ~ pirat + afam + chist + phist + insurance, 
+                 data = HMDA, family = "binomial")
+LogitReg5 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat, 
+                 data = HMDA, family = "binomial")
+LogitReg6 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                 + mhist, data = HMDA, family = "binomial")
+LogitReg7 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                 + mhist + single, data = HMDA, family = "binomial")
+LogitReg8 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                 + mhist + single + condomin, 
+                 data = HMDA, family = "binomial")
+LogitReg9 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                 + mhist + single + condomin + hirat, 
+                 data = HMDA, family = "binomial")
+LogitReg10 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                  + mhist + single + condomin + hirat + hschool, 
+                  data = HMDA, family = "binomial")
+LogitReg11 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                  + mhist + single + condomin + hirat + hschool + selfemp, 
+                  data = HMDA, family = "binomial")
+LogitReg12 <- glm(deny ~ pirat + afam + chist + phist + insurance + lvrat 
+                  + mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                  data = HMDA, family = "binomial")
+
+LogitRegs1 <- list(LogitReg1, LogitReg2, LogitReg3, LogitReg4, LogitReg5, 
+                  LogitReg6)
+LogitRegs2 <- list(LogitReg7, LogitReg8, LogitReg9, LogitReg10, 
+                  LogitReg11, LogitReg12)
+
+stargazer(LogitRegs1, type = "latex", intercept.bottom = FALSE, df= FALSE)
+stargazer(LogitRegs2, type = "latex", intercept.bottom = FALSE, df= FALSE)
+```
+We see that the value of Beta_afam is changing in every regression until Model (12). Hence, we have to test for multicollinearity.
+
+```{r}
+#Check for multi collinearity
+aux1_lr12 <- lm(pirat ~ afam + chist + phist + insurance + lvrat + 
+                  mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux2_lr12 <- lm(afam ~ pirat + chist + phist + insurance + lvrat + 
+                  mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux3_lr12 <- lm(chist ~ pirat + afam + phist + insurance + lvrat + 
+                  mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux4_lr12 <- lm(phist ~ pirat + afam + chist + insurance + lvrat + 
+                  mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux5_lr12 <- lm(insurance ~ pirat + afam + chist + phist + lvrat + 
+                  mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux6_lr12 <- lm(lvrat ~ pirat + afam + chist + phist + insurance + 
+                  mhist + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux7_lr12 <- lm(mhist ~ pirat + afam + chist + phist + insurance + 
+                  lvrat + single + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux8_lr12 <- lm(single ~ pirat + afam + chist + phist + insurance + 
+                  lvrat + mhist + condomin + hirat + hschool + selfemp + unemp, 
+                data = HMDA)
+aux9_lr12<- lm(condomin ~ pirat + afam + chist + phist + insurance + 
+                 lvrat + mhist + single + hirat + hschool + selfemp + unemp, 
+               data = HMDA)
+aux10_lr12<- lm(hirat ~ pirat + afam + chist + phist + insurance + 
+                  lvrat + mhist + single + condomin + hschool + selfemp + unemp, 
+                data = HMDA)
+aux11_lr12<- lm(hschool ~ pirat + afam + chist + phist + insurance + 
+                  lvrat + mhist + single + condomin + hirat + selfemp + unemp, 
+                data = HMDA)
+aux12_lr12<- lm(selfemp ~ pirat + afam + chist + phist + insurance + 
+                  lvrat + mhist + single + condomin + hirat + hschool + unemp, 
+                data = HMDA)
+aux13_lr12 <- lm(unemp ~ pirat + afam + chist + phist + insurance + 
+                   lvrat + mhist + single + condomin + hirat + hschool + selfemp, 
+                 data = HMDA)
+aux1_r2 <- summary(aux1_lr12)$r.squared
+aux2_r2 <- summary(aux2_lr12)$r.squared
+aux3_r2 <- summary(aux3_lr12)$r.squared
+aux4_r2 <- summary(aux4_lr12)$r.squared
+aux5_r2 <- summary(aux5_lr12)$r.squared
+aux6_r2 <- summary(aux6_lr12)$r.squared
+aux7_r2 <- summary(aux7_lr12)$r.squared
+aux8_r2 <- summary(aux8_lr12)$r.squared
+aux9_r2 <- summary(aux9_lr12)$r.squared
+aux10_r2 <- summary(aux10_lr12)$r.squared
+aux11_r2 <- summary(aux11_lr12)$r.squared
+aux12_r2 <- summary(aux12_lr12)$r.squared
+aux13_r2 <- summary(aux13_lr12)$r.squared
+vif1 <- 1/ (1 - aux1_r2)
+vif2 <- 1/ (1 - aux2_r2)
+vif3 <- 1/ (1 - aux3_r2)
+vif4 <- 1/ (1 - aux4_r2)
+vif5 <- 1/ (1 - aux5_r2)
+vif6 <- 1/ (1 - aux6_r2)
+vif7 <- 1/ (1 - aux7_r2)
+vif8 <- 1/ (1 - aux8_r2)
+vif9 <- 1/ (1 - aux9_r2)
+vif10 <- 1/ (1 - aux10_r2)
+vif11 <- 1/ (1 - aux11_r2)
+vif12 <- 1/ (1 - aux12_r2)
+vif13 <- 1/ (1 - aux13_r2)
+vifs <- list(vif1, vif2, vif3, vif4, vif5, vif6, vif7, 
+             vif8, vif9, vif10, vif11, vif12, vif13)
+vifs > 10
+vifs > 5
+```
+We can note that for all regressors VIF is less than 5 we can be confident that imperfect multicollienarity is not an issue in regression (12). And, if is not an issue in regression (12) - which includes the larger number of independent variables - then it won’t be an issue in models (1) to (11). Hence, Model (12) is the model with the least bias. 
+
+
+#5
+
+```{r}
+plot2 <- plot1 + geom_smooth(method = "glm", 
+                             formula = y ~ x, 
+                             method.args = list(family = "binomial"), 
+                             color = "red", se = FALSE)
+plot2
+```
+The logistic regression model is a more appropriate specification as it fits the values of deny better than the linear regressor which extends beyond the bounds of deny variable. 
+
+#6
+
+```{r}
+betalog <- LogitReg12$coefficients
+exp(betalog[3])
+```
+
+Because the relation is non-linear, the odds of a loan getting denied for an african american is 2.02 times the odds of a loan getting denied for a non african american.
+
+#7
+
+```{r}
+chistavg <- mean(HMDA$chist)
+phistavg <- mean(HMDA$phist)
+insuranceavg <- mean(HMDA$insurance)
+lvratavg <- mean(HMDA$lvrat)
+mhistavg <- mean(HMDA$mhist)
+singleavg <- mean(HMDA$single)
+condominavg<- mean(HMDA$condomin)
+hiratavg <- mean(HMDA$hirat)
+hschoolavg <- mean(HMDA$hschool)
+selfempavg <- mean(HMDA$selfemp)
+unempavg <- mean(HMDA$unemp)
+
+invlogit <- function(x){
+  yloghat <- betalog[1] + (betalog[2]*PIavg) + (betalog[3]*x) + 
+    (betalog[4]*chistavg) + (betalog[5]*phistavg) + (betalog[6]*insuranceavg) + 
+    (betalog[7]*lvratavg) + (betalog[8]*mhistavg) + (betalog[9]*singleavg) + 
+    (betalog[10]*condominavg) + (betalog[11]*hiratavg) + (betalog[12]*hschoolavg) +
+    (betalog[13]*selfempavg) + (betalog[14]*unempavg)
+  yhat <- exp(yloghat)/ (1 + exp(yloghat))
+  return(yhat)
+}
+P7.1.1 <- invlogit(1) #When an african american
+P7.1.0 <- invlogit(0) #When not an african american
+as.numeric(P7.1.1/P7.1.0)
+
+```
+The odds of a loan getting denied when an applicant is an african american versus when an applicant is not an african american is 1.89. This is a better estimator than the odds determined with the linear regression model because the range of of the odds ratio is bounded by (0,1)- that fits all values within the domain of deny variable. 

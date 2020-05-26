@@ -1,0 +1,231 @@
+---
+title: "Final_Sampathirao_A"
+author: "Anvita Sampathirao"
+date: "8/15/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("Ecdat")
+library(Ecdat)
+data(Housing)
+Housing$driveway <- ifelse(Housing$driveway == "yes", 1, 0)
+Housing$recroom <- ifelse(Housing$recroom == "yes", 1, 0)
+Housing$fullbase <- ifelse(Housing$fullbase == "yes", 1, 0)
+Housing$gashw <- ifelse(Housing$gashw == "yes", 1, 0)
+Housing$airco <- ifelse(Housing$airco == "yes", 1, 0)
+Housing$prefarea <- ifelse(Housing$prefarea == "yes", 1, 0)
+library(stargazer)
+library(ggplot2)
+suppressMessages(attach(Housing))
+library(psych)
+```
+
+#1
+
+```{r}
+g1 <- ggplot(data = Housing, aes(x = lotsize, y = price)) + geom_point() +
+  ggtitle("Scatterplot of sale price of a house and lot size of the property")
+g2 <- g1 + geom_smooth(method = "lm", formula = y~x, se = FALSE)
+g2
+```
+The relationship between sale price of a house and the lot size of the property seems to be positively correlated, i.e., lower values of lotsize correspond to lower values of sale price of the house and higher values of the lotsize correspond to higher values of sale price of the house. 
+
+Also, Correlation does not imply causation. Therefore, we cannot conclude that lot size of the property causes the sale price of the house. 
+
+#2
+
+```{r, results='asis', warning=FALSE}
+BV <- lm(price ~ lotsize)
+stargazer(BV, type = "latex", 
+          header = FALSE,
+          title = "Bivariate Regression Summary")
+```
+beta0: The average sale price of a house is 34,136.19 units if the lot size of the property is not taken into consideration, i.e. lotsize=0.
+
+beta1: When the lot size of the property increases by a unit, on average, sale price of the house increases by 6.599 units. 
+
+R^2: 28.6% of the variation is sale price of the house can be explained by lot size of the property. 
+
+#3
+
+```{r, results='asis', warning=FALSE}
+corData <- cor(Housing)
+corData <- corData[, colnames(corData) %in% c("price", "lotsize")]
+corData
+a<- corData[,1] * corData[,2]
+sort(a, decreasing = TRUE)
+```
+
+```{r, results='asis', warning=FALSE}
+MV1 <- lm(price ~ lotsize + garagepl)
+MV2 <- lm(price ~ lotsize + garagepl + airco)
+MV3 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms)
+MV4 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms + driveway)
+MV5 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms + driveway + prefarea)
+MV6 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms + driveway + prefarea + bedrooms)
+MV7 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms + driveway + prefarea + bedrooms + recroom)
+MV8 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms + driveway + prefarea + bedrooms + 
+            recroom + stories)
+MV9 <- lm(price ~ lotsize + garagepl + airco + 
+            bathrms + driveway + prefarea + bedrooms + 
+            recroom + stories + fullbase)
+MV10 <- lm(price ~ lotsize + garagepl + airco + 
+             bathrms + driveway + prefarea + bedrooms + 
+             recroom + stories + fullbase + gashw)
+
+MVRegs1 <- list(MV1, MV2, MV3, MV4, MV5)
+MVRegs2 <- list(MV6, MV7, MV8, MV9, MV10)
+
+stargazer(MVRegs1, type = "latex", 
+          title = "(1/2)", intercept.bottom = FALSE, df = FALSE)
+stargazer(MVRegs2, type = "latex", 
+          title = "(2/2)", intercept.bottom = FALSE, df = FALSE)
+```
+
+Looking at the results from the regression model, it seems that there is evidence that previously estimated parater in Q2 for lotsize was biased. After controlling for other factors, the estimated parameter for lotsize changes from 6.599 (in Q2) to 3.546 (in Model 10), which is approximately 53.7% reduction in magnitude of the estimated parameter. 
+
+Also, the R square value has improved from 28.6% (in Bivariate Model) to 66.6% (in Model 10). The variation is sale price of the house can be explained 66.6% by lot size of the property, number of garage places, availability of air conditioning, number of full bathrooms , availability of a driveway, location in the preferred neighborhood, number of bedrooms, availability of recreational rooms, number of stories, availability of a full finished basement, and availability of gas for hot water heating. Therefore, Multivariate Regression- Model 10 is the least biased and our best model for further analyses. 
+
+#4
+
+```{r, results='asis', warning=FALSE}
+vif <- function(reg, data){
+  XvarNames <- names(reg$coefficients)
+  XvarNames <- XvarNames[!(XvarNames %in% "(Intercept)")]
+  k <- length(XvarNames)
+  vifs <- rep(0, k)
+  for(i in 1:k){
+    indVars <- paste(XvarNames[!(XvarNames %in% XvarNames[i])], collapse = " + " )
+    strFormula <- paste(XvarNames[i], indVars, sep = "~")
+    auxReg <- lm(as.formula(strFormula), data = data)
+    r2 <- summary(auxReg)$r.squared
+    vifs[i] <- 1/(1-r2)
+  }
+  return(vifs)
+}
+multiTable <- data.frame(severe = logical(1),
+moderate = logical(1))
+multiTable$severe <- ifelse(any(vif(MV10, Housing) >= 10), TRUE, FALSE)
+multiTable$moderate <- ifelse(any(vif(MV10, Housing) >= 5), TRUE, FALSE)
+stargazer(multiTable, type = "latex", summary = FALSE, rownames = FALSE, header = FALSE,
+title ="Multicollinearity Tests")
+```
+
+Model 10 is the model with the largest amount of independent variables. Therefore, checking for multicollinearity for Model 10 produces the result that the model does not suffer from multicollinearity and we can trust the precision of the estimated standard errors and hypothesis tests. Thus, we can also conclude that there is no multicollinearity in the other models with fewer independent variables.
+
+#5
+
+```{r, results='asis', warning=FALSE}
+#5.a- Adding a quadratic term
+MV10Q <- lm(price ~ lotsize + I(lotsize^2) + garagepl + 
+              airco + bathrms + driveway + prefarea + 
+              bedrooms + recroom + stories + fullbase + gashw)
+#5.b- Adding a cubic term
+MV10C <- lm(price ~ lotsize + I(lotsize^2) + I(lotsize^3) + 
+              garagepl + airco + bathrms + driveway + prefarea + 
+              bedrooms + recroom + stories + fullbase + gashw)
+NLRegs <- list(MV10, MV10Q, MV10C)
+stargazer(NLRegs, type = "latex", header = FALSE, intercept.bottom = FALSE, df = FALSE)
+```
+$$y=price$$
+$$x_1=mean(lotsize)$$
+$$x_1{_{new}}= mean(lotsize) + 1* stdev(lotsize)$$
+$$\Delta{x}= x_1{_{new}}-x_1= stdev(lotsize)$$
+$$\text{Best Model (BM)}: y = \beta_0 + \beta_1*x_1 + \sum_i^k \beta_i*x_k + \epsilon$$
+$$\text{BM.a.}: y = \beta_0 + \beta_1*x_1 + \beta_2*x_1^2 + \sum_i^k \beta_i*x_k + \epsilon$$
+
+$$\text{BM.b.}: price = \beta_0 + \beta_1*x_1 + \beta_2*x_1^2 + \beta_3*x_1^3 + \sum_i^k \beta_i*x_k + \epsilon$$
+$$\Delta{y}_{BM}= \beta_1*\Delta{x}$$
+$$\Delta{y}_{BM.a.}= (\beta_1 + 2\beta_2x_1)*\Delta{x}$$
+$$\Delta{y}_{BM.b.}= (\beta_1 + 2\beta_2x_1 + 3\beta_3x_1^2)*\Delta{x}$$
+```{r, results='asis', warning=FALSE}
+betasBM <- as.numeric(MV10$coefficients)
+betasBMa <- as.numeric(MV10Q$coefficients)
+betasBMb <- as.numeric(MV10C$coefficients)
+x_1 <- mean(lotsize)
+deltax1 <- sd(lotsize)
+deltayBM <- betasBM[2]*deltax1
+deltayBMa <- (betasBMa[2] + (2*betasBMa[3]*x_1))* deltax1
+deltayBMb <- (betasBMb[2] + (2*betasBMb[3]*x_1) + (3*betasBMb[4]*x_1^2))* deltax1
+deltays <- list(deltayBM, deltayBMa, deltayBMb)
+Models <- c("Best Model", "Quadratic Model", "Cubic Model")
+deltays <- cbind(Models, deltays)
+stargazer(deltays, type = "latex",title ="Results", header = FALSE)
+```
+In the Quadratic Model, we see that the estimated parameter for the quadratic term is negative, therefore the change in sale price of the house increases as lot size of the property grows (when compared to the best model which is linear). 
+
+In the Cubic Model, we see that the estimated parameter for the cubic term is positive, therefore the changes in the sale price of the house increases as the lot size of the property grows (when compared to the best model which is linear).
+$$H0:\beta_{lotsize^3}=0$$
+$$H0:\beta_{lotsize^3} \neq 0$$
+When considering the Cubic Model, we see that the parameter of the cubic term is significative at alpha = 0.95, we reject the hypothesis of linearity and quadratic. However the value of the estimated parameter is negligible and a very small value and it does not imply that the parameter is important in practical terms. 
+
+#6
+$$H0: \beta_{lotsize*prefarea}=0$$
+$$H1: \beta_{lotsize*prefarea}\neq0$$
+```{r, results='asis', warning=FALSE}
+MV11 <- lm(price ~ lotsize + I(lotsize*prefarea) + garagepl + 
+             airco + bathrms + driveway + prefarea + bedrooms + 
+             recroom + stories + fullbase + gashw)
+Regs <- list(MV10, MV11)
+stargazer(Regs, type = "latex", header = FALSE, intercept.bottom = FALSE, df = FALSE)
+anova(MV10, MV11)
+```
+
+From the regression results, the interaction parameter is not statistically significative at alpha=0.95 but is significative at alpha=0.90.  
+
+From the F test, we note that p-value is greater than 0.05 which means that we fail to reject the null hypothesis that the estimated parameter for the interaction term between lotsize and prefarea is 0. Then, we can reject that the effect of lot size on price is moderated by prefarea.
+
+#7
+
+```{r}
+Housing1 <- scale(Housing)
+covHousing <- cov(Housing1)
+fact <- fa(Housing1, nfactors = 2)
+fact1 <- fact$loadings[,1]
+fact1[order(fact1)]
+fact2 <- fact$loadings[,2]
+fact2[order(fact2)]
+```
+According to the first factor loading, a possible categorization for a person shortlisting houses in the city of windsor:
+High average on luxury items & amenities criteria such as full basement, recreational rooms, garageplace, preferred neighborhood, lot size of the property and sale price of the house (which corresponds to valuation of the house).
+
+Low average on essentials criteria such as gas for heating and hot water, number of stories, bedrooms,bathrooms, air conditioning and driveway availability.  
+
+#8
+
+```{r}
+set.seed(1)
+kout2 <- kmeans(Housing1, centers = 2, nstart = 25)
+centroids2 <- kout2$centers
+topvars_centroid21 <- centroids2[1,order(centroids2[1,])] 
+topvars_centroid22 <- centroids2[2,order(centroids2[2,])] 
+tail(topvars_centroid21)
+tail(topvars_centroid22)
+```
+
+Using two centers divided the data into two groups.
+
+One with garage place, recreational room, airconditioning, bathrooms, lotsize and price as one category which can be interpreted as a luxury criteria for people in Windsor with a higher average.
+
+Another one with preferred neighborhood, bedrooms, stories, driveway, full basement and gas for heating & hot water which can be interpreted as an essential criteria for people in Windsor with a lower average. 
+
+Yet there are variables (such as availability of a full basement) in the second group which may not reflect how an average individual shortlists houses. Similarly there are variables (such as price) in the first group which may be an essential criterion for shortlisting  houses. 
+
+Cluster Analysis seems to be identifying personal preferences in essentials category which suggests there might be another category that might group overlapping factors in a third category. 
+
+
+
+
+
+

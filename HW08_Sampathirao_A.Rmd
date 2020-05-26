@@ -1,0 +1,229 @@
+---
+title: "HW08_Sampathirao_A"
+author: "Anvita Sampathirao"
+date: "7/13/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+#1.1
+
+```{r}
+dataset<- read.csv("seatbelts.csv", stringsAsFactors = FALSE)
+#head(dataset)
+y<- dataset$fatalityrate
+x1<- dataset$primary
+summary(lm(y~x1))
+```
+Having the primary law enforced has a significant effect on fatality rate (p-value<= 0.05)
+
+Having the primary law enforced decreases the fatality rate by about 0.17%
+
+R^2 is 0.0083. Thus, only about 0.8% of the variation in fatality rate can be attributed to variation in enforcing the primary law.
+
+#1.2
+
+```{r}
+cor(x1,y)
+```
+For exogeneity condition, our independent variable primary law enforcement is independent of error, i.e. it is caused externally to fatality rate environment.
+
+#1.3
+
+Selected Income to see if an increase in per capita income resulted in people being negligent about the seatbelt laws to study the behavioral impact. 
+
+Selected Mean Age to see if there is a relation between age groups and fatality rates and if certain age groups are more prone to fatalities.
+
+```{r}
+x2<-dataset$income
+x3<-dataset$age
+summary(lm(y~x1 + x2))
+```
+Having the primary law enforced increases the fatality rate by about 0.075% and the effect is insignificant (p value>= 0.05)
+
+Additionally, a unit increase in income level decreases the fatality rate by 0.00009% and the effect is significant  (p value<= 0.05)
+
+The R^2 is 0.4965. Thus, 49.65% of the variation in the fatality can be attributed to variation in having the primary law enforced and income.
+
+Adjusted R^2= 0.4952
+
+F statistic is 375.7 and the corresponding p value is less than 0.05. Thus, the model predicts fatality rate better than the mean of fatality rate.
+
+```{r}
+summary(lm(y~x1 + x2 + x3))
+```
+Having the primary law enforced increases the fatality rate by about 0.074% and the effect is insignificant (p value>= 0.05)
+
+Additionally, a unit increase in income level decreases the fatality rate by 0.00008% and the effect is significant  (p value<= 0.05)
+
+Additionally, a unit increase in the mean age decreases the fatality rate by 0.038% and the effect is significant  (p value<= 0.05)
+
+The R^2 is 0.5059. Thus, 50.59% of the variation in the fatality can be attributed to variation in having the primary law enforced, income and age.
+Adjusted R^2 is 0.504
+
+F statistic is 259.8 and the corresponding p value is less than 0.05. Thus, the model predicts fatality rate better than the mean of fatality rate.
+
+#2.1
+
+```{r}
+library("readxl")
+ndataset<- read_excel("CollegeDistance.xls", col_names = TRUE)
+head(ndataset)
+a<- cov(ndataset$dist, ndataset$ed)
+b1<- a/(sd(ndataset$dist)^2)
+b1
+b0<- mean(ndataset$ed)- (b1*mean(ndataset$dist))
+b0
+yhatfun<- function(x){
+  yhat<- b0 + (b1*x)
+  return(yhat)
+}
+edfit<- yhatfun(ndataset$dist)
+SSE<- sum((ndataset$ed - edfit)^2)
+TSS <- sum((ndataset$ed - mean(ndataset$ed))^2)
+Rsq <- (TSS -SSE)/TSS
+Rsq
+summary(lm(ndataset$ed~ndataset$dist))
+```
+Having distance from College has a significant effect on years of education completed (p-value<= 0.05)
+
+Increasing unit distance from College decreases years of education completed by about 7.34%
+i.e. estimated slope (beta-1)= -0.07337
+
+R^2 is 0.00745. Thus, only about 0.7% of the variation in years of education can be attributed to variation in distance from college.
+
+#2.2
+```{r}
+xmat <- as.matrix(cbind(ndataset$dist,
+                        ndataset$bytest,
+                        ndataset$female,
+                        ndataset$black,
+                        ndataset$hispanic,
+                        ndataset$incomehi,
+                        ndataset$ownhome,
+                        ndataset$dadcoll,
+                        ndataset$momcoll,
+                        ndataset$cue80,
+                        ndataset$stwmfg80))
+xmat <- cbind(1,xmat)
+head(xmat)
+Q2Y<- ndataset$ed
+betas <- solve( t(xmat) %*% xmat )   %*%   t(xmat) %*% Q2Y
+betas
+edhat<-xmat %*% betas
+head(edhat)
+```
+The estimated effect of dist on ed is -0.03080391. i.e. the rate of decrease in years of education with an increase in distance from college has decreased by 0.04. 
+
+The estimated parameters differ because of non inclusion of other variables such as the ones included in this model (race, ethnicity, test scores, income, ownership, parents' educational background, county's unemployment rate, state hourly wage)
+
+#2.3
+
+$$H_0: \beta_i=0$$
+$$H_a: \beta_i \neq 0$$
+
+```{r}
+n <- nrow(xmat) # Number of observations, rows
+kPlus1 <- ncol(xmat) # columns of xmat = k + 1
+dof<- n-kPlus1 #Degree of freedom
+se_y <- sqrt(sum( (Q2Y - edhat)^2 ) / (n - kPlus1) ) 
+se_beta<- se_y * sqrt( diag( solve( t(xmat) %*% xmat )) )
+data<- data.frame(betas,se_beta, row.names = c("Intercept",
+                                               "Distance",
+                                               "bytest",
+                                               "female",
+                                               "black",
+                                               "hispanic",
+                                               "incomehi",
+                                               "ownhome",
+                                               "dadcoll",
+                                               "momcoll",
+                                               "cue80",
+                                               "stwmfg80"))
+colnames(data)<- c("beta","betaerror")
+data
+variables<- nrow(data)
+t_value<- rep(0,variables)
+for(i in 1:variables){
+  t_value[i]<- data$beta[i]/ data$betaerror[i]
+}
+t_value # Calculating t values to test beta hypothesis individually
+t_critical<- qt(0.975, dof)
+#Function to perform t test
+tTest<- function(t){
+  ifelse(abs(t)>=t_critical, "Reject Null ", "Cant reject H0")
+}
+#checking for each value of beta
+for(i in 1:variables){
+  print(tTest(t_value[i]))
+}
+```
+
+#2.4
+
+```{r}
+#R^2 value
+tssm2 <- sum((Q2Y - mean(Q2Y))^2)
+ssem2 <- sum((Q2Y-edhat)^2)
+r2m2 <- (tssm2-ssem2)/tssm2
+r2m2
+
+#Adjusted R^2 value
+n1 <- length(Q2Y)
+k1 <- ncol(xmat)-1
+dft1 <- n1 - 1
+dfe1 <- n1 - k1 - 1
+Adjr2m2<- (tssm2/dft1 - ssem2/dfe1)/ (tssm2/dft1)
+Adjr2m2
+```
+Would prefer Adjusted R^2 as a measure of goodness of fit because it avoids overfitting, i.e., with increasing number of variables, adjusted R^2 decreases while R^2 does not. 
+
+```{r}
+#To verify
+summary(lm(ndataset$ed~ndataset$dist +
+     ndataset$bytest +
+     ndataset$female +
+     ndataset$black +
+     ndataset$hispanic +
+     ndataset$incomehi +
+     ndataset$ownhome +
+     ndataset$dadcoll + 
+     ndataset$momcoll +
+     ndataset$cue80 +
+     ndataset$stwmfg80))
+```
+
+#2.5
+
+$$\text{Bivariate model}: ed= 13.95 - 0.07*dist$$
+
+$$\text{Multivariate model}: ed= 8.86 - 0.03*dist + 0.09*test score + 0.14*gender + 0.35* race$$
+$$+0.40*ethnicity + 0.36*income +0.14* ownership +0.57*dadedu + 0.37*momedu$$
+$$+ 0.02*unemprate - 0.05*statehrlywage$$
+
+```{r}
+#Model 1- Biviriate Regression
+yhatfun(2)
+#Model 2- Multivariate Regression
+Input<- matrix(c(1, 2, 58, 0, 1, 0, 1, 1, 0, 1, 7.5, 9.75))
+bobhat<- data$beta %*% Input
+bobhat
+```
+Would prefer the results from Multivariate regression model as it predicts that Bob had an additional year of education after his AA degree as it has a higher adjusted R^2 value.
+
+#2.6
+
+$$H_0: \text{None of them are significantly different from 0}$$
+$$H_a: \text{At least one coefficient is significantly different from 0}$$
+
+```{r}
+F_stat<- (r2m2/k1) / ((1-r2m2)/(n1-k1-1))
+F_stat
+pf(F_stat, k1, (n1-k1-1), lower.tail= F)
+```
+Because the p value is less than 0.05, we can reject the null hypothesis, i.e. all the parameters in the model are not simultaneously equal to 0. Atleast one of them is different than 0. 

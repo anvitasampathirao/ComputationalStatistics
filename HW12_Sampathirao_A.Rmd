@@ -1,0 +1,116 @@
+---
+title: "HW12_Sampathirao_A"
+author: "Anvita Sampathirao"
+date: "8/13/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("psych")
+library(psych)
+data(bfi)
+bfi1 <- bfi[,1:25]
+bfi1 <- data.frame(bfi1)
+bfi2 <- na.omit(bfi1)
+names(bfi2)
+bfi2 <- scale(bfi2)
+dim(bfi2)
+```
+
+#1
+
+```{r}
+covm <- cov(bfi2)
+eigenm <- eigen(covm)
+eigen1 <- eigenm$vectors[,1]
+eigen1
+plot(eigenm$values, type = "b")
+```
+As per the elbow test, it looks like 5 factors can be retained. 
+
+#2
+
+```{r}
+plot(cumsum(eigenm$values)/sum(eigenm$values), ylim=c(0,1))
+```
+From the plot, 4 factors are needed to explain 50% of the total variance.
+
+#3
+
+```{r}
+#install.packages("GPArotation")
+fact <- fa(bfi2, nfactors = 2)
+fact1 <- fact$loadings[,1]
+fact1[order(fact1)]
+fact2 <- fact$loadings[,2]
+fact2[order(fact2)]
+```
+As we can see from the above results:
+
+The factors look like the principle component which best summarize the data and most likely to have less variability with the data. When we look at the loadings on one end, we can observe that variables suggest extrovertedness and on the complete opposite end are variables suggesting a negative or anxious emotional state, which are 2 opposite states of mind. The factors underlying these variables may be optimism and pessimism.
+
+#4
+
+```{r}
+#2 centers
+kout2 <- kmeans(bfi2, centers = 2, nstart = 25)
+centroids2 <- kout2$centers
+topvars_centroid21 <- centroids2[1,order(centroids2[1,])] 
+topvars_centroid22 <- centroids2[2,order(centroids2[2,])] 
+tail(topvars_centroid21)
+tail(topvars_centroid22)
+
+#3 centers
+kout3 <- kmeans(bfi2, centers = 3, nstart = 25)
+centroids3 <- kout3$centers
+topvars_centroid31 <- centroids3[1,order(centroids3[1,])] 
+topvars_centroid32 <- centroids3[2,order(centroids3[2,])] 
+topvars_centroid33 <- centroids3[3,order(centroids3[3,])]
+tail(topvars_centroid31)
+tail(topvars_centroid32)
+tail(topvars_centroid33)
+kout2$tot.withinss
+kout3$tot.withinss
+```
+In both analysis we are trying to bucket the data into certain groups that may be unknown in the beginning. Depending on the groups formed, we can draw inferences on the nature of the groups or identify characteristics which make them fall under the same group. 
+
+The groups identified in factor analysis comprised of all variables included in the study, differing in their contributions (weightages) towards optimism and pessimism groups (for eg: Optimism would be 99% be defined by positive personality type and 0.7% neutral personality type and 0.3% negative personality type)
+
+The groups identified using cluster analysis strongly restricted the participation of variables to a certain number depending on the proximity to the cluster centroids (like cluster 1 would have only E1, N1, C4, C5, N4 and E2 suggesting a grumpy personality type)
+
+However,the classification using cluster analysis seems to group individuals by the personality types into 1) Extroverted 2) Empathizing 3) Neurotic
+
+
+#5
+
+```{r}
+hout <- hclust(dist(bfi2),method="complete")
+plot(hout, labels = FALSE)
+abline(a=14,b=0,col="red") #Setting a dissimilarity level of 14
+```
+Selecting 4 clusters to proceed with as we see that above our threshold line, 4 clusters are coming together to form the hierarchy.
+```{r}
+library(factoextra)
+kout4 <- kmeans(bfi2, centers = 4, nstart = 25)
+fviz_cluster(kout4, data=bfi2)
+centroids4 <- kout4$centers
+topvars_centroid41 <- centroids4[1,order(centroids4[1,])] 
+topvars_centroid42 <- centroids4[2,order(centroids4[2,])] 
+topvars_centroid43 <- centroids4[3,order(centroids4[3,])]
+topvars_centroid44 <- centroids4[4,order(centroids4[4,])]
+tail(topvars_centroid41)
+tail(topvars_centroid42)
+tail(topvars_centroid43)
+tail(topvars_centroid44)
+```
+
+
+
+#6
+
+We learnt from factor analysis that there are primarily 2 extreme groups (positive and negative types/ optimism and pessimism type) under which the personality types were lying. There was demarcation achieved from factor analysis. However, from cluster analysis we learnt that there are groups that lie at the juncture of these 2 extremes and given their central points, varied a lot from the extreme points- pessimism and optimism. These groups lie in the middle of the 2 extreme groups and are a better descriptors of the data. There are always going to be personality types which need not lie in the extreme ends of the spectrum, tehey often turn out to be neutral or rather balanced types. 
+
